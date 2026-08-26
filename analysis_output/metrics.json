@@ -1,0 +1,104 @@
+[
+  {
+    "pair": "Maxar_pre_vs_post",
+    "aligned": true,
+    "orb_inliers": 140,
+    "ssim_global": 0.3123032919697773,
+    "ssim_valid_region": 0.38057136361181887,
+    "mean_abs_pixel_diff_0_255": 28.948694229125977,
+    "pct_area_changed_otsu": 54.039976070085146,
+    "valid_pixel_fraction": 0.8159526569186876,
+    "mean_rgb_a": [
+      102.39668477800633,
+      108.02910107110955,
+      97.94177818935775
+    ],
+    "mean_rgb_b": [
+      109.59924822915899,
+      104.66243467761542,
+      101.7781549380035
+    ],
+    "mean_rgb_delta_b_minus_a": [
+      7.202563451152656,
+      -3.3666663934941283,
+      3.8363767486457476
+    ],
+    "figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/Maxar_pre_vs_post.png",
+    "dinov2_model": "facebook/dinov2-base",
+    "dinov2_global_cosine_sim": 0.8586678504943848,
+    "dinov2_mean_patch_dissim": 0.34882962703704834,
+    "dinov2_patch_grid": [
+      16,
+      16
+    ],
+    "dinov2_figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/Maxar_pre_vs_post_dinov2.png"
+  },
+  {
+    "pair": "NOAA_postHelene_vs_postMilton",
+    "aligned": true,
+    "orb_inliers": 833,
+    "ssim_global": 0.5605427135438679,
+    "ssim_valid_region": 0.5991949617848504,
+    "mean_abs_pixel_diff_0_255": 26.161487579345703,
+    "pct_area_changed_otsu": 42.42333484082938,
+    "valid_pixel_fraction": 0.912972265625,
+    "mean_rgb_a": [
+      98.28148573790362,
+      103.70872994242278,
+      98.97962569885705
+    ],
+    "mean_rgb_b": [
+      83.2298741789887,
+      88.62769482746302,
+      83.20861249464639
+    ],
+    "mean_rgb_delta_b_minus_a": [
+      -15.051611558914928,
+      -15.08103511495976,
+      -15.77101320421066
+    ],
+    "figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/NOAA_postHelene_vs_postMilton.png",
+    "dinov2_model": "facebook/dinov2-base",
+    "dinov2_global_cosine_sim": 0.8857674598693848,
+    "dinov2_mean_patch_dissim": 0.21580451726913452,
+    "dinov2_patch_grid": [
+      16,
+      16
+    ],
+    "dinov2_figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/NOAA_postHelene_vs_postMilton_dinov2.png"
+  },
+  {
+    "pair": "S2_pre_vs_post",
+    "aligned": true,
+    "orb_inliers": 810,
+    "ssim_global": 0.6451756139132481,
+    "ssim_valid_region": 0.6469424889896491,
+    "mean_abs_pixel_diff_0_255": 42.95045471191406,
+    "pct_area_changed_otsu": 27.99989032896146,
+    "valid_pixel_fraction": 0.9954972310126582,
+    "mean_rgb_a": [
+      81.49309370476318,
+      89.7812134305697,
+      81.0290822957963
+    ],
+    "mean_rgb_b": [
+      56.01187546615159,
+      64.66457073126344,
+      57.83751003827758
+    ],
+    "mean_rgb_delta_b_minus_a": [
+      -25.481218238611596,
+      -25.116642699306254,
+      -23.19157225751872
+    ],
+    "figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/S2_pre_vs_post.png",
+    "dinov2_model": "facebook/dinov2-base",
+    "dinov2_global_cosine_sim": 0.8259336948394775,
+    "dinov2_mean_patch_dissim": 0.34153175354003906,
+    "dinov2_patch_grid": [
+      16,
+      16
+    ],
+    "dinov2_figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/S2_pre_vs_post_dinov2.png"
+  }
+]
