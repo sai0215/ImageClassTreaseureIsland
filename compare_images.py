@@ -1,20 +1,3 @@
-"""
-Pre/post-hurricane satellite image comparison for Treasure Island, FL.
-
-Pairs analyzed:
-  1. Maxar   pre  (2023-11-04) vs post (2024-10-10)  -- pre-season vs post-Milton, high-res
-  2. NOAA    post-Helene (2024-09-30) vs post-Milton (2024-10-11) -- storm-to-storm delta
-  3. Sentinel-2 pre (2024-09-19) vs post (2024-10-14) -- wide-area, moderate-res, cloudy
-
-Method:
-  - ORB feature matching + homography to co-register the second image onto the first
-    (handles small footprint/rotation offsets between passes).
-  - Valid-data masking to exclude black/no-data borders from statistics.
-  - SSIM (structural similarity) map -> localized structural change / damage detector.
-  - Absolute RGB difference map -> raw pixel-level change magnitude.
-  - Per-channel mean color shift -> proxy for water turbidity / sediment / vegetation loss.
-  - Otsu-thresholded change mask on the SSIM dissimilarity map -> % area changed.
-"""
 import json
 import numpy as np
 import cv2
@@ -54,7 +37,6 @@ def load_rgb(path):
 
 
 def valid_mask(img, thresh=8):
-    # exclude near-black no-data / letterboxed regions
     return (img.astype(np.int32).sum(axis=2) > thresh)
 
 
@@ -93,7 +75,7 @@ def analyze_pair(pair):
     a = load_rgb(f"{IMG_DIR}/{pair['a']}")
     b_raw = load_rgb(f"{IMG_DIR}/{pair['b']}")
 
-    # Resize b to a's size first if dims differ (shouldn't, but safety)
+    
     if b_raw.shape[:2] != a.shape[:2]:
         b_raw = np.array(Image.fromarray(b_raw).resize((a.shape[1], a.shape[0])))
 
@@ -110,7 +92,7 @@ def analyze_pair(pair):
     dissim = 1 - ssim_map
     dissim_masked = np.where(mask, dissim, 0)
 
-    # masked SSIM score (only over valid overlap)
+  
     ssim_score_valid = ssim_map[mask].mean() if mask.any() else float("nan")
 
     # absolute RGB diff
@@ -118,7 +100,7 @@ def analyze_pair(pair):
     diff_gray = diff_rgb.mean(axis=2)
     diff_gray_masked = np.where(mask, diff_gray, 0)
 
-    # otsu threshold change mask on dissimilarity (valid region only)
+   
     valid_vals = dissim_masked[mask]
     change_pct = float("nan")
     change_mask = np.zeros_like(mask)
@@ -127,7 +109,7 @@ def analyze_pair(pair):
         change_mask = (dissim_masked > t) & mask
         change_pct = 100.0 * change_mask.sum() / mask.sum()
 
-    # per-channel mean color (valid pixels only) -> turbidity/vegetation proxy
+    
     mean_a = a[mask].mean(axis=0) if mask.any() else np.array([np.nan] * 3)
     mean_b = b_aligned[mask].mean(axis=0) if mask.any() else np.array([np.nan] * 3)
 
@@ -145,7 +127,7 @@ def analyze_pair(pair):
         "mean_rgb_delta_b_minus_a": (mean_b - mean_a).tolist(),
     }
 
-    # ---- visualization ----
+   
     fig, axes = plt.subplots(2, 3, figsize=(18, 12))
     fig.suptitle(pair["title"], fontsize=15, fontweight="bold")
 

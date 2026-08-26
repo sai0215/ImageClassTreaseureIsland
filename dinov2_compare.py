@@ -1,21 +1,3 @@
-"""
-Adds DINOv2 embedding-based similarity to the existing SSIM/pixel-diff pipeline.
-
-Why DINOv2: it's a self-supervised ViT (no text bias, unlike CLIP) trained to produce
-strong dense visual features, which is what most remote-sensing / satellite change-detection
-work actually uses embeddings for. We use it two ways per pair:
-
-  1. Global similarity: cosine similarity between the [CLS] token embeddings of the two
-     (aligned) images -> a single "how semantically/visually similar overall" score,
-     robust to lighting/tide/color differences in a way raw pixel diff is not.
-  2. Dense similarity map: cosine similarity per spatial patch token, upsampled back to
-     image resolution -> a coarse (16x16 grid) semantic change map, complementary to the
-     fine-grained SSIM map already computed (SSIM catches texture/edge changes; DINOv2
-     patch similarity catches "this region now depicts a different kind of surface").
-
-Reuses load_rgb / valid_mask / align_b_to_a / PAIRS from compare_images.py so the exact
-same registered image pairs are used -- numbers stay apples-to-apples with the SSIM report.
-"""
 import json
 import numpy as np
 import torch
@@ -39,10 +21,10 @@ def embed(img_rgb_uint8):
     inputs = processor(images=img_rgb_uint8, return_tensors="pt").to(DEVICE)
     h_in, w_in = inputs["pixel_values"].shape[-2:]
     out = model(**inputs)
-    tokens = out.last_hidden_state[0]  # [1 + n_patches (+ registers), hidden]
+    tokens = out.last_hidden_state[0]
     cls = tokens[0]
     n_patches = (h_in // PATCH) * (w_in // PATCH)
-    patch_tokens = tokens[-n_patches:]  # last n_patches tokens are always the patch grid
+    patch_tokens = tokens[-n_patches:]
     grid_h, grid_w = h_in // PATCH, w_in // PATCH
     patch_grid = patch_tokens.reshape(grid_h, grid_w, -1)
     return cls.cpu().numpy(), patch_grid.cpu().numpy()
@@ -57,7 +39,7 @@ def cosine(a, b):
 def patch_cosine_map(grid_a, grid_b):
     a = grid_a / (np.linalg.norm(grid_a, axis=-1, keepdims=True) + 1e-8)
     b = grid_b / (np.linalg.norm(grid_b, axis=-1, keepdims=True) + 1e-8)
-    return (a * b).sum(axis=-1)  # cosine sim per patch cell, shape [gh, gw]
+    return (a * b).sum(axis=-1)
 
 
 def analyze_pair_dinov2(pair):
@@ -72,10 +54,9 @@ def analyze_pair_dinov2(pair):
     cls_b, grid_b = embed(b_aligned)
 
     global_sim = cosine(cls_a, cls_b)
-    sim_map = patch_cosine_map(grid_a, grid_b)  # small grid, e.g. 16x16
+    sim_map = patch_cosine_map(grid_a, grid_b)
     dissim_map = 1 - sim_map
 
-    # upsample dissimilarity map to full image resolution for visualization / masking
     h, w = a.shape[:2]
     dissim_full = cv2.resize(dissim_map.astype(np.float32), (w, h), interpolation=cv2.INTER_CUBIC)
     dissim_full = np.clip(dissim_full, 0, None)

@@ -1,9 +1,3 @@
-"""
-Two-page, classic-style PDF summary report for the Treasure Island change-detection analysis.
-Page 1: header, method, results table, similarity bar chart.
-Page 2: before/after/change thumbnail grid, conclusion, footer.
-Reuses the same registration/SSIM/DINOv2 numbers already computed in metrics.json.
-"""
 import json
 import textwrap
 import numpy as np
@@ -74,8 +68,6 @@ def build_pair_thumbs(pair, size=320):
 
 
 class PageBuilder:
-    """Top-down cursor layout helper, one instance per page/figure."""
-
     def __init__(self):
         self.fig = plt.figure(figsize=(8.5, 11))
         self.cursor = 0.97
@@ -98,9 +90,6 @@ class PageBuilder:
         self.cursor -= amount
 
 
-# ======================================================================
-# PAGE 1 — Header, Method, Results Table, Similarity Bar Chart
-# ======================================================================
 p1 = PageBuilder()
 
 ax_h, top, bottom = p1.take_axes(0.135, gap_after=0.0)
@@ -191,9 +180,6 @@ ax_b.legend(loc="upper center", ncol=2, frameon=False, fontsize=9.5)
 
 p1.fig.text(0.5, 0.015, "Page 1 of 2", fontsize=8, color="#888888", ha="center")
 
-# ======================================================================
-# PAGE 2 — Visual Evidence, Conclusion, Footer
-# ======================================================================
 p2 = PageBuilder()
 
 ax_h2, top, bottom = p2.take_axes(0.05, gap_after=0.015)
