@@ -48,7 +48,7 @@ def align_b_to_a(a_gray, b_gray, b_color):
         return b_color, False, 0
 
     bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
-    matches = bf.knnMatch(des1, des2, k=2)
+    matches = bf.knnMatch(des1, des2, k=2) #lowe's ratio test
     good = []
     for m_n in matches:
         if len(m_n) == 2:
@@ -100,7 +100,7 @@ def analyze_pair(pair):
     diff_gray = diff_rgb.mean(axis=2)
     diff_gray_masked = np.where(mask, diff_gray, 0)
 
-   
+   #otsu thresholding to find changed areas
     valid_vals = dissim_masked[mask]
     change_pct = float("nan")
     change_mask = np.zeros_like(mask)

@@ -58,7 +58,8 @@ def analyze_pair_dinov2(pair):
     dissim_map = 1 - sim_map
 
     h, w = a.shape[:2]
-    dissim_full = cv2.resize(dissim_map.astype(np.float32), (w, h), interpolation=cv2.INTER_CUBIC)
+    #unsample
+    dissim_full = cv2.resize(dissim_map.astype(np.float32),(w, h), interpolation=cv2.INTER_CUBIC)
     dissim_full = np.clip(dissim_full, 0, None)
     dissim_masked = np.where(mask, dissim_full, 0)
 
