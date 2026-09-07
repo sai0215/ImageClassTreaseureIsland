@@ -25,13 +25,20 @@
     ],
     "figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/Maxar_pre_vs_post.png",
     "dinov2_model": "facebook/dinov2-base",
-    "dinov2_global_cosine_sim": 0.8586678504943848,
-    "dinov2_mean_patch_dissim": 0.34882962703704834,
-    "dinov2_patch_grid": [
-      16,
-      16
-    ],
-    "dinov2_figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/Maxar_pre_vs_post_dinov2.png"
+    "dinov2_global_cosine_sim": 0.7228753566741943,
+    "dinov2_mean_patch_dissim": 0.4104655086994171,
+    "dinov2_tile_size": 224,
+    "dinov2_tile_stride": 112,
+    "dinov2_n_tiles": 168,
+    "dinov2_figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/Maxar_pre_vs_post_dinov2.png",
+    "combined_tile_size": 224,
+    "combined_n_tiles": 168,
+    "pct_ssim_candidates": 54.039976070085146,
+    "pct_dino_candidates": 49.49066979176057,
+    "pct_confirmed_change": 32.22796795139714,
+    "pct_fine_only_likely_noise": 21.812008118688006,
+    "pct_semantic_only_broad": 17.26270184036343,
+    "combined_figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/Maxar_pre_vs_post_combined.png"
   },
   {
     "pair": "NOAA_postHelene_vs_postMilton",
@@ -59,13 +66,20 @@
     ],
     "figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/NOAA_postHelene_vs_postMilton.png",
     "dinov2_model": "facebook/dinov2-base",
-    "dinov2_global_cosine_sim": 0.8857674598693848,
-    "dinov2_mean_patch_dissim": 0.21580451726913452,
-    "dinov2_patch_grid": [
-      16,
-      16
-    ],
-    "dinov2_figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/NOAA_postHelene_vs_postMilton_dinov2.png"
+    "dinov2_global_cosine_sim": 0.9179306030273438,
+    "dinov2_mean_patch_dissim": 0.35117608308792114,
+    "dinov2_tile_size": 224,
+    "dinov2_tile_stride": 112,
+    "dinov2_n_tiles": 196,
+    "dinov2_figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/NOAA_postHelene_vs_postMilton_dinov2.png",
+    "combined_tile_size": 224,
+    "combined_n_tiles": 196,
+    "pct_ssim_candidates": 42.42333484082938,
+    "pct_dino_candidates": 40.35659626503235,
+    "pct_confirmed_change": 25.625265006253183,
+    "pct_fine_only_likely_noise": 16.798069834576197,
+    "pct_semantic_only_broad": 14.731331258779168,
+    "combined_figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/NOAA_postHelene_vs_postMilton_combined.png"
   },
   {
     "pair": "S2_pre_vs_post",
@@ -93,12 +107,19 @@
     ],
     "figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/S2_pre_vs_post.png",
     "dinov2_model": "facebook/dinov2-base",
-    "dinov2_global_cosine_sim": 0.8259336948394775,
-    "dinov2_mean_patch_dissim": 0.34153175354003906,
-    "dinov2_patch_grid": [
-      16,
-      16
-    ],
-    "dinov2_figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/S2_pre_vs_post_dinov2.png"
+    "dinov2_global_cosine_sim": 0.8917021751403809,
+    "dinov2_mean_patch_dissim": 0.4052480161190033,
+    "dinov2_tile_size": 224,
+    "dinov2_tile_stride": 112,
+    "dinov2_n_tiles": 187,
+    "dinov2_figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/S2_pre_vs_post_dinov2.png",
+    "combined_tile_size": 224,
+    "combined_n_tiles": 187,
+    "pct_ssim_candidates": 27.99989032896146,
+    "pct_dino_candidates": 51.2830915471047,
+    "pct_confirmed_change": 24.921670639592755,
+    "pct_fine_only_likely_noise": 3.078219689368704,
+    "pct_semantic_only_broad": 26.36142090751195,
+    "combined_figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/S2_pre_vs_post_combined.png"
   }
 ]
