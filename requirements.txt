@@ -9,3 +9,5 @@ transformers==5.15.1
 rasterio==1.4.3
 geopandas==1.1.1
 shapely==2.1.1
+scikit-learn==1.7.2
+joblib==1.4.2

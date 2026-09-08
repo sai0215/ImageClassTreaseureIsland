@@ -19,6 +19,7 @@ pre/post scenes — the flat preview PNGs in images/ have no geotransform and
 can't be used here. Fill in GEO_PAIRS below once you have those rasters.
 """
 import json
+import os
 
 import geopandas as gpd
 import numpy as np
@@ -31,6 +32,12 @@ from dinov2_compare import PATCH, DEVICE, model, processor
 
 FOOTPRINTS_PATH = "footprints/treasure_island_buildings.geojson"
 OUT_DIR = "analysis_output"
+
+# Optional: path to a probe trained by train_xbd_probe.py. When present, each
+# building's post-event embedding is also run through it to get an actual
+# damage class (no-damage/minor-damage/major-damage/destroyed), not just the
+# raw pre/post cosine-distance score.
+PROBE_PATH = "models/xbd_dinov2_probe.joblib"
 
 # Fill in with georeferenced (GeoTIFF/COG) pre/post rasters once available.
 # The flat PNGs in images/ have no geotransform and won't work here.
@@ -127,7 +134,17 @@ def cosine_dist(a, b):
     return float(1 - np.dot(a, b))
 
 
+def _load_probe():
+    if not os.path.exists(PROBE_PATH):
+        return None
+    import joblib
+    print(f"  loaded damage probe from {PROBE_PATH}")
+    return joblib.load(PROBE_PATH)
+
+
 def analyze_pair_footprints(pair, footprints):
+    probe = _load_probe()
+
     with rasterio.open(pair["pre_tif"]) as pre_src, rasterio.open(pair["post_tif"]) as post_src:
         fp_pre = footprints.to_crs(pre_src.crs)
         fp_post = footprints.to_crs(post_src.crs)
@@ -138,6 +155,7 @@ def analyze_pair_footprints(pair, footprints):
         )
 
         scores = []
+        damage_classes = []
         for idx in footprints.index[in_bounds]:
             try:
                 emb_pre = _pooled_footprint_embedding(pre_src, fp_pre.geometry.loc[idx])
@@ -146,9 +164,16 @@ def analyze_pair_footprints(pair, footprints):
                 print(f"  skipping building {idx}: {e}")
                 continue
             scores.append((idx, cosine_dist(emb_pre, emb_post)))
+            if probe is not None:
+                x = probe["scaler"].transform(emb_post.reshape(1, -1))
+                damage_classes.append(probe["clf"].predict(x)[0])
+            else:
+                damage_classes.append(None)
 
     result = footprints.loc[[i for i, _ in scores]].copy()
     result["change_score"] = [s for _, s in scores]
+    if probe is not None:
+        result["damage_class"] = damage_classes
     out_path = f"{OUT_DIR}/{pair['name']}.geojson"
     result.to_file(out_path, driver="GeoJSON")
     print(f"  {len(result)} buildings scored -> {out_path}")
