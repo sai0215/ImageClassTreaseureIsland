@@ -1,0 +1,32 @@
+# NGINX ingress controller (the one Rancher's default AKS cluster templates
+# install) fronting the imagedetection-api Service, with cert-manager issuing
+# and renewing the TLS certificate automatically.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: imagedetection-api
+  namespace: imagedetection
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # DINOv2 inference responses (report PDFs, output images) can be large
+    # and analysis jobs are async, but keep body size generous for uploads.
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+spec:
+  tls:
+    - hosts:
+        - imagedetection.example.com
+      secretName: imagedetection-tls
+  rules:
+    - host: imagedetection.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: imagedetection-api
+                port:
+                  name: http

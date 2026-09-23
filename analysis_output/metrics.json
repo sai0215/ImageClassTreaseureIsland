@@ -23,22 +23,7 @@
       -3.3666663934941283,
       3.8363767486457476
     ],
-    "figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/Maxar_pre_vs_post.png",
-    "dinov2_model": "facebook/dinov2-base",
-    "dinov2_global_cosine_sim": 0.7228753566741943,
-    "dinov2_mean_patch_dissim": 0.4104655086994171,
-    "dinov2_tile_size": 224,
-    "dinov2_tile_stride": 112,
-    "dinov2_n_tiles": 168,
-    "dinov2_figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/Maxar_pre_vs_post_dinov2.png",
-    "combined_tile_size": 224,
-    "combined_n_tiles": 168,
-    "pct_ssim_candidates": 54.039976070085146,
-    "pct_dino_candidates": 49.49066979176057,
-    "pct_confirmed_change": 32.22796795139714,
-    "pct_fine_only_likely_noise": 21.812008118688006,
-    "pct_semantic_only_broad": 17.26270184036343,
-    "combined_figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/Maxar_pre_vs_post_combined.png"
+    "figure": "/Users/saivignesh/Desktop/projects/TAMU/ImageDetection/analysis_output/Maxar_pre_vs_post.png"
   },
   {
     "pair": "NOAA_postHelene_vs_postMilton",

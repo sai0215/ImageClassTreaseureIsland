@@ -1,0 +1,307 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: imagedetection
+---
+# Federated with an Azure AD app registration (Workload Identity) so pods can
+# read the Key Vault-backed secrets in k8s-secrets.yml without a stored credential.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: imagedetection-api
+  namespace: imagedetection
+  annotations:
+    azure.workload.identity/client-id: "<AZURE_WORKLOAD_IDENTITY_CLIENT_ID>"
+  labels:
+    azure.workload.identity/use: "true"
+---
+# Shared, read/write output volume for the pipeline artifacts (analysis_output/:
+# metrics.json, per-pair PNGs, the built PDF report). Azure Files (RWX) is used
+# instead of an Azure Disk (RWO) because both the "api" and "worker" containers
+# in the pod need write access, and future replicas/pods must all read the same
+# metrics.json.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: imagedetection-outputs
+  namespace: imagedetection
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: azurefile-csi-premium
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: imagedetection-api
+  namespace: imagedetection
+  labels:
+    app: imagedetection-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: imagedetection-api
+  template:
+    metadata:
+      labels:
+        app: imagedetection-api
+        # Read by the cluster-wide Datadog Agent DaemonSet's Autodiscovery
+        # (container/pod tagging) so logs, APM traces, and infra metrics for
+        # this pod all land under one Datadog service in the explorer. Note:
+        # main.py's own GET /metrics returns pipeline JSON results, not
+        # OpenMetrics/Prometheus text — it's an app endpoint, not a scrape
+        # target, so no openmetrics check is configured here.
+        tags.datadoghq.com/service: imagedetection-api
+        tags.datadoghq.com/env: production
+        tags.datadoghq.com/version: "<BUILD_TAG>"
+    spec:
+      serviceAccountName: imagedetection-api
+      # Runs the app pods on nodes Rancher labels for this workload, keeping
+      # GPU/high-memory DINOv2 inference off the shared/general node pool.
+      nodeSelector:
+        workload: imagedetection
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      volumes:
+        - name: outputs
+          persistentVolumeClaim:
+            claimName: imagedetection-outputs
+        - name: akv-secrets
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: imagedetection-akv
+      containers:
+        # --- Main container: serves the FastAPI app, handles requests, and
+        # (only when REDIS_URL is unset) runs analysis jobs in-process. In
+        # this deployment REDIS_URL is always set, so it just enqueues jobs.
+        - name: api
+          image: <ACR_NAME>.azurecr.io/imagedetection-api:<BUILD_TAG>
+          imagePullPolicy: IfNotPresent
+          command: ["./entrypoint.sh", "api"]
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: imagedetection-secrets
+          env:
+            - name: CORS_ORIGINS
+              value: "https://imagedetection.example.com"
+            - name: DD_ENV
+              value: production
+            - name: DD_SERVICE
+              value: imagedetection-api
+            - name: DD_VERSION
+              value: "<BUILD_TAG>"
+            - name: DD_AGENT_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: DD_LOGS_INJECTION
+              value: "true"
+          volumeMounts:
+            - name: outputs
+              mountPath: /app/analysis_output
+            - name: akv-secrets
+              mountPath: /mnt/secrets-store
+              readOnly: true
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+        # --- Sidecar: a Celery worker consuming analysis tasks queued onto
+        # Redis (Azure Cache for Redis, addressed via REDIS_URL) by the api
+        # container's /analyze endpoint (celery_app.py, tasks.py). Same image
+        # as "api", entrypoint.sh dispatches to `celery -A celery_app worker`
+        # instead of uvicorn. Decoupling this from the request-handling
+        # container means a slow multi-minute DINOv2 job never risks the api
+        # container's liveness probe timing out and getting restarted
+        # mid-request.
+        - name: worker
+          image: <ACR_NAME>.azurecr.io/imagedetection-api:<BUILD_TAG>
+          imagePullPolicy: IfNotPresent
+          command: ["./entrypoint.sh", "worker"]
+          envFrom:
+            - secretRef:
+                name: imagedetection-secrets
+          env:
+            # No HTTP server in this container; tells the image's Dockerfile
+            # HEALTHCHECK (only consulted outside k8s, e.g. plain docker run)
+            # to no-op instead of probing port 8000.
+            - name: CELERY_WORKER
+              value: "1"
+            - name: CELERY_CONCURRENCY
+              value: "2"
+            - name: DD_ENV
+              value: production
+            - name: DD_SERVICE
+              value: imagedetection-worker
+            - name: DD_VERSION
+              value: "<BUILD_TAG>"
+            - name: DD_AGENT_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: DD_LOGS_INJECTION
+              value: "true"
+          volumeMounts:
+            - name: outputs
+              mountPath: /app/analysis_output
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+          livenessProbe:
+            exec:
+              command: ["celery", "-A", "celery_app", "inspect", "ping", "-d", "celery@$(HOSTNAME)"]
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 10
+---
+# Horizontal Pod Autoscaler: scales the "api" container's request-handling
+# replicas on CPU. The worker sidecar rides along with each replica; queue
+# depth (not covered here) would be a better worker-specific signal if the
+# worker is ever split into its own Deployment.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: imagedetection-api
+  namespace: imagedetection
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: imagedetection-api
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+---
+# Flower: Celery's monitoring UI (task history, retries, per-worker rate/
+# throughput). Deliberately its own single-replica Deployment rather than a
+# third container in the api/worker pod — it's an operational/debug tool, not
+# part of the request-serving path, and scaling it with the HPA above would
+# be meaningless (there's exactly one Flower process to look at). It uses the
+# same image/entrypoint.sh dispatch as the other two containers.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: imagedetection-flower
+  namespace: imagedetection
+  labels:
+    app: imagedetection-flower
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: imagedetection-flower
+  template:
+    metadata:
+      labels:
+        app: imagedetection-flower
+        tags.datadoghq.com/service: imagedetection-flower
+        tags.datadoghq.com/env: production
+        tags.datadoghq.com/version: "<BUILD_TAG>"
+    spec:
+      serviceAccountName: imagedetection-api
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+        - name: flower
+          image: <ACR_NAME>.azurecr.io/imagedetection-api:<BUILD_TAG>
+          imagePullPolicy: IfNotPresent
+          command: ["./entrypoint.sh", "flower"]
+          ports:
+            - name: http
+              containerPort: 5555
+          envFrom:
+            - secretRef:
+                name: imagedetection-secrets
+          env:
+            # user:password, sourced from the "flower-basic-auth" Key Vault
+            # object (see k8s-secrets.yml). Flower has no auth of its own
+            # otherwise and must never be reachable unauthenticated.
+            - name: FLOWER_BASIC_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: imagedetection-secrets
+                  key: FLOWER_BASIC_AUTH
+                  optional: true
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: imagedetection-flower
+  namespace: imagedetection
+  labels:
+    app: imagedetection-flower
+spec:
+  type: ClusterIP
+  selector:
+    app: imagedetection-flower
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

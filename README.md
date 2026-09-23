@@ -65,6 +65,15 @@ python build_final_report.py   # Final 2-page PDF report
 `analysis_output/metrics.json` holds every raw number (SSIM, % area changed, mean
 RGB shift, DINOv2 cosine similarity) behind the report.
 
+## API
+
+The pipeline is also exposed as a FastAPI backend (`main.py`) — `POST /analyze`,
+`GET /metrics`, `GET /report`, `GET /outputs/{file}` — with a Celery worker
+sidecar (`tasks.py`, `celery_app.py`) offloading the actual inference over a
+Redis broker. See [DEPLOYMENT.md](DEPLOYMENT.md) for the API surface, Docker
+image, Kubernetes manifests (`k8s-*.yml`), and the ADO CI/CD pipeline that
+ships it to AKS.
+
 ## Key finding
 
 All three sources agree the open Gulf-facing beach/dune line took substantial damage
